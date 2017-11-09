@@ -1,12 +1,12 @@
 # AED2-Corretor
 Trabalho de AED2. Corretor ortográfico/hash
 
-	* IDENTIFICAÇÃO:
+		* IDENTIFICAÇÃO: (aparentemente resolvido)	
+		- Casos 1, 2, 4 Tem distancia 1 na distancia de levenshtein
+		- Caso 3 pode ser implementado na analise da mesma matriz. - O valor tera distancia 2, e sera apenas necessario permutar os caracteres vizinhos
 
-	- Casos 1, 2, 4 Tem distancia 1 na distancia de levenshtein
-	- Caso 3 pode ser implementado na analise da mesma matriz. - O valor tera distancia 2, e sera apenas necessario permutar os caracteres
-vizinhos
 
+	
 	* ORDENAÇÃO:
 
 	- 1: Podemos criar uma lista encadeada de nodos contendo a string, sendo que a lista se mantem ordenada pela inserção
@@ -24,3 +24,11 @@ caso, os conflitos atrapalham e teriamos que armazenar um inteiro identificando 
 
 	- De acordo com o aumento do vetor, a funcao parece perder a efetividade, talvez pelo tamanho maximo assumido por "long int"
 
+
+NOTAS: 
+
+* levenshtein_pp pode ser otimizado para sair no momento em q nao for possivel ter valor 1
+
+* Implementar (ou achar) funcao de comparacao de strings para poder ordenar
+
+* Implementar funcao sugestoes
