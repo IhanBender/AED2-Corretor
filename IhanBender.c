@@ -7,61 +7,69 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c))) // Usado para calculo da distancia de levenshtein (descobre o menor dos valores)
 
+/* ------------------------------------------------ Structs usadas ----------------------------------------------- */
 
-typedef struct node{		// nodos com as strings
+typedef struct {	// Cabecario da heap
+  char ** vet;
+  int tamanhoAtual;
+} heap;
+
+typedef struct node{		// nodos com as strings (lista encadeada)
 	struct node * prox;
 	char * word;
 } node;
 
-typedef struct hashHead{
-	int fCarga;		// Fator de carga máximo. Poderá ser alterado na funcao que cria a tabela
-	int qnt;		// Quantidade de Strings armazenadas na estrutura
-	int tam;		// Controla o tamanho atual do vetor (para nao precisar calcular percorrendo)
+typedef struct hashHead{	// Cabecario da hash
+	int fCarga;			// Fator de carga máximo. Poderá ser alterado na funcao que cria a tabela
+	int qnt;			// Quantidade de Strings armazenadas na estrutura
+	int tam;			// Controla o tamanho atual do vetor (para nao precisar calcular percorrendo)
 	node ** vetor;		// Vetor de ponteiros para nodos
 } hashHead;
 
-typedef struct adress	// usado para enderecar as strings sugeridas
-{
-	int vetPos;
-	int listPos;
-	struct adress * prox;
-} adress;
+/* --------------------------------------- Header das Funções -------------------------------------------------- */
 
-typedef struct adressHead{
-	adress * first;
-} adressHead;
-
+//Operações hash
 unsigned int hash(char * str);				// Calcula um indice para a tabela hash 
-
 hashHead * createHash(hashHead * head);		// Cria um cabecario para uma tabela hash
 hashHead * reHash(hashHead * head);			// Dobra o tamanho do vetor e rearmazena todos os valores
-
 bool insert(hashHead * head, char * str);	// Insere uma string da tabela
 bool delete(hashHead * head, char * str);	// Deleta uma string da tabela
 bool search(hashHead * head, char * str);	// Procura uma string na tabela que seja igual ao parametro. Retorna NULL se nao encontrar
 void freeHash(hashHead * head);				// Libera toda memoria da hash
 
-void toLowerCase(char * str);				// Deixa uma string apenas com letras minusculas
-int compareString(char * str);				// Compara strings e verifica se é igual ou se pode ser tratada como sugestão
-int levenshtein_pp(char *s1, char *s2);	// Retorna 1 caso as strings sejam "semelhantes" (de acordo com as especificacoes), 0 caso sejam iguais e 2 ou mais caso sejam "muito diferentes"
+// Manipulaçao de strings
+void toLowerCase(char * str);					// Deixa uma string apenas com letras minusculas
 
-adressHead * sugestoes(adressHead * adressH, hashHead * head, char * str);	// Busca em toda a tabela por palavras que sejam semelhantes e ordena em uma lista encadeada
-void imprimeSugestoes(adressHead * adressH, hashHead * head);	// imprime as palavras ordenadas e libera a memoria das mesmas
+// Sugestoes
+int levenshtein_pp(char *s1, char *s2);			// Retorna 1 caso as strings sejam "semelhantes" (de acordo com as especificacoes), 0 caso sejam iguais e 2 ou mais caso sejam "muito diferentes"
+heap * buscaSugestoes(hashHead * head, char * str);	// Busca as palavras ordenadas e armazena em uma heap
+
+// Heap
+void inicializarHeap(heap * h, int tamanhoMax);
+int pai(int i);
+int filhoEsquerda(int i);
+int filhoDireita(int i);
+void insertHeap(heap * h, char * str);
+void pop(heap * h);
+void heapSort(heap * h);
+
+/* ---------------------------------------- MAIN ---------------------------------------------------------- */
 
 int main(){
 	
 	hashHead * head;			// Cabecario da hash
 	head = createHash(head);	// Cria a tabela hash (50 posicoes inicialmente)
 	char str[100], analizedString[100];	// Strings utilizada para leitura das palavras
-	adressHead * adressH = malloc(sizeof(adressHead));
+	heap * heapHead = (heap *) malloc(sizeof(heap));
 
 	analizedString[0] = '\0';
 	head = createHash(head);
 
+
 	while(fgets(str, 100, stdin)){
+
 		if (str[0] == '*')
 		{
 			freeHash(head);		// Libera memoria e encerra a execucao quando o valor lido for *
@@ -69,34 +77,32 @@ int main(){
 		}
 		
 		toLowerCase(str);
+		str[strlen(str) - 1] = '\0';
 
 		if (str[0] == '+'){		// Caso tenha lido um +
-
 			if (analizedString[0] == '\0'){		// Verifica se existe uma palavra sendo analizada
-				printf("fail palavra\n");
+				printf("fail %s\n", analizedString);
 			}
 			else{
 				if (insert(head, analizedString)){
-					printf("ok palavra\n");
+					printf("ok %s\n",analizedString);
 				}
 				else{
-					printf("fail palavra\n");
+					printf("fail %s\n", analizedString);
 				}
 			}
 		}
 		else{
 			if (str[0] == '-'){		// Caso tenha lido um -
-				if (analizedString[0] == '\0')
-				{
-					printf("fail palavra\n");		
+				if (analizedString[0] == '\0'){
+					printf("fail %s\n", analizedString);
 				}
 				else{
-					if (delete(head, analizedString))
-					{
-						printf("ok palavra\n");
+					if (delete(head, analizedString)){
+						printf("ok %s\n",analizedString);
 					}
 					else{
-						printf("fail palavra\n");
+						printf("fail %s\n", analizedString);
 					}
 				}
 			}
@@ -104,40 +110,26 @@ int main(){
 
 				strcpy(analizedString, str);		// Copia a string lida para a string auxiliar
 				if (search(head, analizedString)){	// Caso exista, ok
-					printf("ok palavra\n");
+					printf("ok %s\n",analizedString);
 				}
 				else{
-					adressH = sugestoes(adressH, head, analizedString);	// Busca sugestoes
-					if (adressH->first == NULL){		// Caso nao haja
+					heapHead = buscaSugestoes(head, analizedString);	// Busca sugestoes
+					if (heapHead->vet[1] == NULL){		// Caso nao haja
 						printf("not found\n");	
 					}
-					else{							// Caso haja
-						imprimeSugestoes(adressH, head);
+					else{							// Caso haja						
+						while(heapHead->tamanhoAtual != 0){
+							pop(heapHead);
+						}
 					}
 				}
 			}
 		}
 	}
 
-	/*while(i < head->tam){
-		percorre = head->vetor[i];
-		if(head->vetor[i] == NULL)
-			vazio++;
-		while(percorre != NULL){
-			//printf("%d,%d : %s\n",i, j, percorre->word);
-			j++;
-			percorre = percorre->prox;
-		}
-		i++;
-		
-		j = 0;	
-	}*/
-
-	printf("%d\n", levenshtein_pp("cigarro", "cigarro"));
-	
-
-	freeHash(head);	// Libera memoria utilizada na hash
 }
+
+/* ------------------------------------------------ Funcoes -------------------------------------------------- */
 
 unsigned int hash(char * str){
 	char p = str[0];
@@ -322,6 +314,87 @@ void freeHash(hashHead * head){					// Libera toda memoria da hash
 	free(head);
 }	
 
+void inicializarHeap(heap * h, int tamanhoMax){
+  h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1));
+  h->tamanhoAtual = 0;
+}
+
+
+int pai(int i){
+  return i/2;
+}
+
+int filhoEsquerda(int i){
+  return 2*i;
+}
+
+int filhoDireita(int i){
+  return 2*i + 1;
+}
+
+
+void pop(heap * h){
+	printf("%s\n",h->vet[1]);
+	int pos = 1;
+	int value;
+	char auxStr[100];
+
+	strcpy(h->vet[1], h->vet[h->tamanhoAtual]);	
+	free(h->vet[h->tamanhoAtual]);
+	h->tamanhoAtual--;
+
+
+	while(filhoEsquerda(pos) <= h->tamanhoAtual || filhoEsquerda(pos) <= h->tamanhoAtual){
+		
+		value = strcmp(h->vet[filhoEsquerda(pos)], h->vet[filhoDireita(pos)]);
+		if(value < 0){
+			if(strcmp(h->vet[filhoEsquerda(pos)], h->vet[pos]) < 0){
+				strcpy(auxStr, h->vet[pos]);					// Troca as strings entre os dois
+				strcpy(h->vet[pos], h->vet[filhoEsquerda(pos)]);
+				strcpy(h->vet[filhoEsquerda(pos)], auxStr);
+				pos = filhoEsquerda(pos);
+			}
+			else{
+				break;
+			}
+		}
+		else if(value < 0){
+			if(strcmp(h->vet[filhoDireita(pos)], h->vet[pos]) < 0){
+				strcpy(auxStr, h->vet[pos]);					// Troca as strings entre os dois
+				strcpy(h->vet[pos], h->vet[filhoDireita(pos)]);
+				strcpy(h->vet[filhoDireita(pos)], auxStr);
+				pos = filhoDireita(pos);
+			}	
+		}
+		else{
+			break;
+		}
+
+	}
+}
+
+void insertHeap(heap * h, char * str){
+
+	char auxStr[100];
+	int position = h->tamanhoAtual + 1;
+
+	h->vet[position] = (char *) malloc(sizeof(char) * strlen(str));
+	strcpy(h->vet[position], str);	// Copia string passada para a heap
+	h->tamanhoAtual++;
+
+	while(pai(position) != 0){	// Enquanto o pai for maior q o filho
+		if(strcmp(h->vet[pai(position)], h->vet[position]) > 0 ){
+			strcpy(auxStr, h->vet[position]);					// Troca as strings entre os dois
+			strcpy(h->vet[position], h->vet[pai(position)]);
+			strcpy(h->vet[pai(position)], auxStr);
+			position = pai(position);
+		}
+		else
+			break;		
+	}
+}
+
+
 void toLowerCase(char * str){					// Deixa uma string apenas com letras minusculas
 
 	int i, size = strlen(str);
@@ -334,6 +407,8 @@ void toLowerCase(char * str){					// Deixa uma string apenas com letras minuscul
 	return;
 }	
 
+
+// Otimizar para sair antes
 int levenshtein_pp(char *s1, char *s2) {
     unsigned int s1len, s2len, x, y, lastdiag, olddiag;
     s1len = strlen(s1);
@@ -352,8 +427,7 @@ int levenshtein_pp(char *s1, char *s2) {
             }
             else{
             	column[y] = MIN3(column[y] + 1, column[y-1] + 1, lastdiag + (s1[y-1] == s2[x-1] ? 0 : s1[y-1] == s2[x] && s1[y] == s2[x-1] ? 0 : 1));
-            	if (s1[y-1] == s2[x] && s1[y] == s2[x-1])
-            	{
+            	if (s1[y-1] == s2[x] && s1[y] == s2[x-1]){
             		flag = 1;
             	}
             }
@@ -364,30 +438,31 @@ int levenshtein_pp(char *s1, char *s2) {
     return(column[s1len]);
 }
 
-
-
-adressHead * sugestoes(adressHead * adressH, hashHead * head, char * str);	// Busca em toda a tabela por palavras que sejam semelhantes e ordena em uma lista encadeada
-
-
-
-
-
-void imprimeSugestoes(adressHead * adressH, hashHead * head){		// imprime as palavras ordenadas e libera a memoria das mesmas
-	
-	node * percorreNodo;
+heap * buscaSugestoes(hashHead * head, char * str){		// imprime as palavras sugeridas ordenadas
+	heap * heapHead = (heap *) malloc(sizeof(heap));
+	inicializarHeap(heapHead, head->qnt);
+	node * percorre;
 	int i = 0;
-	
-	adress * percorreAdress = adressH->first;
-	adressH->first = NULL;
 
-	while(percorreAdress != NULL){
-		percorreVetor = head->vetor[percorreNodo->vetPos];	// PercorreVetor recebe a posicao na hash da posicao atual da lista de sugestoes
-		for (int i = 0; i < percorreAdress->listPos; i++){	// Percorre a lista encadeada de nodos na posicao atual
-			percorreNodo = percorreNodo->prox;
+	for (int i = 0; i < head->tam; i++){		// Percorre toda a hash
+		percorre = head->vetor[i];
+		while(percorre != NULL){
+			if (levenshtein_pp(percorre->word, str) == 1){	// Seleciona os valores que devem ser sugeridos
+				insertHeap(heapHead, percorre->word);		// Insere os valores na heap
+			}
+
+			percorre = percorre->prox;
 		}
-		printf("%s\n", percorreNodo->word);		// Imprime a palavra sugerida
-
-		i = 0;	// Zera o contador
-		percorreAdress = percorreAdress->prox;	// Incrementa para a proxima palavra sugerida
 	}
-}	
+
+	return heapHead;
+}
+
+
+void heapSort(heap * h){
+	while(h->tamanhoAtual != 0){
+		pop(h);
+	}
+
+	free(h->vet);
+}

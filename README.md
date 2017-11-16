@@ -3,15 +3,15 @@ Trabalho de AED2. Corretor ortográfico/hash
 
 		* IDENTIFICAÇÃO: (aparentemente resolvido)	
 		- Casos 1, 2, 4 Tem distancia 1 na distancia de levenshtein
-		- Caso 3 pode ser implementado na analise da mesma matriz. - O valor tera distancia 2, e sera apenas necessario permutar os caracteres vizinhos
-
-
+		- Caso 3 pode ser implementado na analise da mesma matriz. - O valor tera distancia 2, e sera apenas necessario permutar os 			caracteres vizinhos
 	
 	* ORDENAÇÃO:
 
 	- 1: Podemos criar uma lista encadeada de nodos contendo a string, sendo que a lista se mantem ordenada pela inserção
 	- 2: Podemos criar um vetor/lista encadeada com os valores dos indices (ordenados por insercao em relacao à string, nao à chave). Neste
 caso, os conflitos atrapalham e teriamos que armazenar um inteiro identificando quantas casas deverao ser percorridas
+	- 3: Podemos criar um vetor, colocar os valores sugeridos e ordenar o vetor.
+		-3.2: MergeSort - Usa um novo vetor (pode, no pior caso, "triplicar" a memoria utilizada, assim como a rehash)	
 
 	* MEMÓRIA:
 
@@ -29,6 +29,9 @@ NOTAS:
 
 * levenshtein_pp pode ser otimizado para sair no momento em q nao for possivel ter valor 1
 
-* Implementar (ou achar) funcao de comparacao de strings para poder ordenar
+		strcmp() * Implementar (ou achar) funcao de comparacao de strings para poder ordenar
 
 * Implementar funcao sugestoes
+
+
+
