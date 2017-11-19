@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 typedef struct{
 	char ** vet;
@@ -8,8 +9,11 @@ typedef struct{
 } heap;
 
 void inicializarHeap(heap * h, int tamanhoMax){
-  h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1));
-  h->tamanhoAtual = 0;
+	if(!(h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1)))){
+		exit(1);
+	}
+ 	h->tamanhoAtual = 0;
+	
 }
 
 
@@ -25,65 +29,73 @@ int filhoDireita(int i){
   return 2*i + 1;
 }
 
-void pop(heap * h){
-	printf("%s\n",h->vet[1]);
-	int pos = 1;
-	int value;
-	char auxStr[100];
+void minHeapify(heap * h, int i){
+  int esq = filhoEsquerda(i);
+  int dir = filhoDireita(i);
+  char * temp;
+  int menor = i;
 
-	strcpy(h->vet[1], h->vet[h->tamanhoAtual]);	
-	free(h->vet[h->tamanhoAtual]);
-	h->tamanhoAtual--;
+  if ((esq <= h->tamanhoAtual) && strcmp(h->vet[esq],h->vet[i]) < 0) 
+  	menor = esq;
 
+  if ((dir <= h->tamanhoAtual) && strcmp(h->vet[dir],h->vet[menor]) < 0)
+  	menor = dir;
 
-	while(filhoEsquerda(pos) <= h->tamanhoAtual || filhoEsquerda(pos) <= h->tamanhoAtual){
-		
-		value = strcmp(h->vet[filhoEsquerda(pos)], h->vet[filhoDireita(pos)]);
-		if(value < 0){
-			if(strcmp(h->vet[filhoEsquerda(pos)], h->vet[pos]) < 0){
-				strcpy(auxStr, h->vet[pos]);					// Troca as strings entre os dois
-				strcpy(h->vet[pos], h->vet[filhoEsquerda(pos)]);
-				strcpy(h->vet[filhoEsquerda(pos)], auxStr);
-				pos = filhoEsquerda(pos);
-			}
-			else{
-				break;
-			}
-		}
-		else if(value < 0){
-			if(strcmp(h->vet[filhoDireita(pos)], h->vet[pos]) < 0){
-				strcpy(auxStr, h->vet[pos]);					// Troca as strings entre os dois
-				strcpy(h->vet[pos], h->vet[filhoDireita(pos)]);
-				strcpy(h->vet[filhoDireita(pos)], auxStr);
-				pos = filhoDireita(pos);
-			}	
-		}
-		else{
-			break;
-		}
-
-	}
+  if (menor != i) {
+  	temp = h->vet[i];
+	h->vet[i] = h->vet[menor];
+	h->vet[menor] = temp;
+  
+  }
 }
 
-void insertHeap(heap * h, char * str){
+void pop(heap * h){
 
-	char auxStr[100];
-	int position = h->tamanhoAtual + 1;
+	int pos = 1;
+	char * str;
 
-	h->vet[position] = (char *) malloc(sizeof(char) * strlen(str));
-	strcpy(h->vet[position], str);	// Copia string passada para a heap
-	h->tamanhoAtual++;
+	// Imprime o menor valor (raiz) e substitui pelo ultimo valor
+	if (h->vet[1] != NULL){
+		printf("%s\n", h->vet[1]);
 
-	while(pai(position) != 0){	// Enquanto o pai for maior q o filho
-		if(strcmp(h->vet[pai(position)], h->vet[position]) > 0 ){
-			strcpy(auxStr, h->vet[position]);					// Troca as strings entre os dois
-			strcpy(h->vet[position], h->vet[pai(position)]);
-			strcpy(h->vet[pai(position)], auxStr);
-			position = pai(position);
-		}
-		else
-			break;		
+		h->vet[1] = h->vet[h->tamanhoAtual];
+		
+		free(h->vet[h->tamanhoAtual]);
+		h->vet[h->tamanhoAtual] = NULL;
+		h->tamanhoAtual--;
 	}
+		
+		minHeapify(h, 1);
+}
+
+void insertHeap(heap * h, char * chave){
+  int i;
+  char * temp;
+  char * str;
+
+  (h->tamanhoAtual)++;
+  i = h->tamanhoAtual;
+  str = malloc(sizeof(char) * strlen(chave));
+  strcpy(str, chave);
+  h->vet[i] = str;
+
+  while ((i>1) && (strcmp(h->vet[pai(i)],h->vet[i]) > 0)){
+
+  	// troca vet[i] com vet[pai(i)] 
+  	temp = h->vet[i];
+  	h->vet[i] = h->vet[pai(i)];
+  	h->vet[pai(i)] = temp;
+ 
+	i = pai(i);
+  }
+  return;
+}
+void heapSort(heap * h){
+	while(h->tamanhoAtual != 0){
+		pop(h);
+	}
+
+	free(h->vet);
 }
 
 
@@ -93,37 +105,30 @@ void insertHeap(heap * h, char * str){
 int main(){
 	heap * h = (heap *) malloc(sizeof(heap));
 	inicializarHeap(h, 50);	
+	char str[100];
 
+	while(fgets(str, 100, stdin)){
+		str[strlen(str) - 1] = '\0';
 
-	insertHeap(h, "strap");
-	insertHeap(h, "tap");
-	insertHeap(h, "wrap");
-	insertHeap(h, "tray");
-	insertHeap(h, "trip");
-	/*insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");
-	insertHeap(h, "AbdelAziz");*/
-
-
-
-	while(h->tamanhoAtual != 0){
-		pop(h);
+		insertHeap(h, str);
 	}
+
+	/*for(int i = 1; i <= h->tamanhoAtual; i++){
+		printf("%s\n",h->vet[i]);
+	}*/
+
+	/*insertHeap(h, "aabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	insertHeap(h, "babcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	insertHeap(h, "cabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	insertHeap(h, "fabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	insertHeap(h, "dabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	insertHeap(h, "eabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	insertHeap(h, "gabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
+	*/
+
+
+	heapSort(h);
+	free(h);
 
 
 }

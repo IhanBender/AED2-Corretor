@@ -51,9 +51,10 @@ void inicializarHeap(heap * h, int tamanhoMax);
 int pai(int i);
 int filhoEsquerda(int i);
 int filhoDireita(int i);
-void insertHeap(heap * h, char * str);
+void insertHeap(heap * h, char * chave);
 void pop(heap * h);
 void heapSort(heap * h);
+void minHeapify(heap * h, int i);
 
 /* ---------------------------------------- MAIN ---------------------------------------------------------- */
 
@@ -61,14 +62,13 @@ int main(){
 	
 	hashHead * head;			// Cabecario da hash
 	head = createHash(head);	// Cria a tabela hash (50 posicoes inicialmente)
-	char str[100], analizedString[100];	// Strings utilizada para leitura das palavras
-	heap * heapHead = (heap *) malloc(sizeof(heap));
+	char str[101], analizedString[101];	// Strings utilizada para leitura das palavras
+	heap * heapHead;
 
 	analizedString[0] = '\0';
-	head = createHash(head);
 
 
-	while(fgets(str, 100, stdin)){
+	while(fgets(str, 101, stdin)){
 
 		if (str[0] == '*')
 		{
@@ -112,17 +112,15 @@ int main(){
 				if (search(head, analizedString)){	// Caso exista, ok
 					printf("ok %s\n",analizedString);
 				}
-				else{
+				/*else{
 					heapHead = buscaSugestoes(head, analizedString);	// Busca sugestoes
 					if (heapHead->vet[1] == NULL){		// Caso nao haja
 						printf("not found\n");	
 					}
 					else{							// Caso haja						
-						while(heapHead->tamanhoAtual != 0){
-							pop(heapHead);
-						}
+						heapSort(heapHead);
 					}
-				}
+				}*/
 			}
 		}
 	}
@@ -130,6 +128,9 @@ int main(){
 }
 
 /* ------------------------------------------------ Funcoes -------------------------------------------------- */
+
+
+//	------------------------------------------------ Hash -------------------------------------------------------
 
 unsigned int hash(char * str){
 	char p = str[0];
@@ -314,11 +315,15 @@ void freeHash(hashHead * head){					// Libera toda memoria da hash
 	free(head);
 }	
 
-void inicializarHeap(heap * h, int tamanhoMax){
-  h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1));
-  h->tamanhoAtual = 0;
-}
+// ------------------------------------------------ Heap -------------------------------------------------------------
 
+void inicializarHeap(heap * h, int tamanhoMax){
+	h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1));
+ 	h->tamanhoAtual = 0;
+	for (int i = 1; i <= h->tamanhoAtual; ++i){
+  		h->vet[i] = NULL;
+  	}
+}
 
 int pai(int i){
   return i/2;
@@ -332,68 +337,99 @@ int filhoDireita(int i){
   return 2*i + 1;
 }
 
+void minHeapify(heap * h, int i){
+  int esq = filhoEsquerda(i);
+  int dir = filhoDireita(i);
+  char * temp;
+  int menor = i;
+
+  if ((esq <= h->tamanhoAtual) && strcmp(h->vet[esq],h->vet[i]) < 0) 
+  	menor = esq;
+
+  if ((dir <= h->tamanhoAtual) && strcmp(h->vet[dir],h->vet[menor]) < 0)
+  	menor = dir;
+
+  if (menor != i) {
+  	temp = h->vet[i];
+	h->vet[i] = h->vet[menor];
+	h->vet[menor] = temp;
+  
+  }
+}
 
 void pop(heap * h){
-	printf("%s\n",h->vet[1]);
+
 	int pos = 1;
-	int value;
-	char auxStr[100];
+	char * str;
 
-	strcpy(h->vet[1], h->vet[h->tamanhoAtual]);	
-	free(h->vet[h->tamanhoAtual]);
-	h->tamanhoAtual--;
+	// Imprime o menor valor (raiz) e substitui pelo ultimo valor
+	if (h->vet[1] != NULL){
+		printf("%s\n", h->vet[1]);
 
-
-	while(filhoEsquerda(pos) <= h->tamanhoAtual || filhoEsquerda(pos) <= h->tamanhoAtual){
+		h->vet[1] = h->vet[h->tamanhoAtual];
 		
-		value = strcmp(h->vet[filhoEsquerda(pos)], h->vet[filhoDireita(pos)]);
-		if(value < 0){
-			if(strcmp(h->vet[filhoEsquerda(pos)], h->vet[pos]) < 0){
-				strcpy(auxStr, h->vet[pos]);					// Troca as strings entre os dois
-				strcpy(h->vet[pos], h->vet[filhoEsquerda(pos)]);
-				strcpy(h->vet[filhoEsquerda(pos)], auxStr);
-				pos = filhoEsquerda(pos);
-			}
-			else{
-				break;
-			}
-		}
-		else if(value < 0){
-			if(strcmp(h->vet[filhoDireita(pos)], h->vet[pos]) < 0){
-				strcpy(auxStr, h->vet[pos]);					// Troca as strings entre os dois
-				strcpy(h->vet[pos], h->vet[filhoDireita(pos)]);
-				strcpy(h->vet[filhoDireita(pos)], auxStr);
-				pos = filhoDireita(pos);
-			}	
-		}
-		else{
-			break;
-		}
-
+		free(h->vet[h->tamanhoAtual]);
+		h->vet[h->tamanhoAtual] = NULL;
+		h->tamanhoAtual--;
 	}
+		
+		minHeapify(h, 1);
 }
 
-void insertHeap(heap * h, char * str){
+void insertHeap(heap * h, char * chave){
+  int i;
+  char * temp;
+  char * str;
 
-	char auxStr[100];
-	int position = h->tamanhoAtual + 1;
+  (h->tamanhoAtual)++;
+  i = h->tamanhoAtual;
+  str = malloc(sizeof(char) * strlen(chave));
+  strcpy(str, chave);
+  h->vet[i] = str;
 
-	h->vet[position] = (char *) malloc(sizeof(char) * strlen(str));
-	strcpy(h->vet[position], str);	// Copia string passada para a heap
-	h->tamanhoAtual++;
+  while ((i>1) && (strcmp(h->vet[pai(i)],h->vet[i]) > 0)){
 
-	while(pai(position) != 0){	// Enquanto o pai for maior q o filho
-		if(strcmp(h->vet[pai(position)], h->vet[position]) > 0 ){
-			strcpy(auxStr, h->vet[position]);					// Troca as strings entre os dois
-			strcpy(h->vet[position], h->vet[pai(position)]);
-			strcpy(h->vet[pai(position)], auxStr);
-			position = pai(position);
-		}
-		else
-			break;		
-	}
+  	// troca vet[i] com vet[pai(i)] 
+  	temp = h->vet[i];
+  	h->vet[i] = h->vet[pai(i)];
+  	h->vet[pai(i)] = temp;
+ 
+	i = pai(i);
+  }
+  return;
 }
 
+heap * buscaSugestoes(hashHead * head, char * str){		// imprime as palavras sugeridas ordenadas
+	heap * heapHead = (heap *) malloc(sizeof(heap));
+	inicializarHeap(heapHead, head->qnt);
+	node * percorre;
+	int i;
+
+	for (i = 0; i < head->tam; i++){		// Percorre toda a hash
+		percorre = head->vetor[i];
+		while(percorre != NULL){
+			if (levenshtein_pp(percorre->word, str) == 1){	// Seleciona os valores que devem ser sugeridos
+				insertHeap(heapHead, percorre->word);		// Insere os valores na heap
+			}
+
+			percorre = percorre->prox;
+		}
+	}
+
+	return heapHead;
+}
+
+
+void heapSort(heap * h){
+	while(h->tamanhoAtual != 0){
+		pop(h);
+	}
+
+	free(h->vet);
+	free(h);
+}
+
+// ----------------------------------------------- Manutençao de Strings ----------------------------------------------------
 
 void toLowerCase(char * str){					// Deixa uma string apenas com letras minusculas
 
@@ -407,7 +443,6 @@ void toLowerCase(char * str){					// Deixa uma string apenas com letras minuscul
 	return;
 }	
 
-
 // Otimizar para sair antes
 int levenshtein_pp(char *s1, char *s2) {
     unsigned int s1len, s2len, x, y, lastdiag, olddiag;
@@ -415,6 +450,10 @@ int levenshtein_pp(char *s1, char *s2) {
     s2len = strlen(s2);
     unsigned int column[s1len+1];
     short int flag = 0;
+
+    if(s1len - s2len >= 2 || s2len - s1len >= 2){
+        return 3;
+    }
 
     for (y = 1; y <= s1len; y++)
         column[y] = y;
@@ -436,33 +475,4 @@ int levenshtein_pp(char *s1, char *s2) {
         }
     }
     return(column[s1len]);
-}
-
-heap * buscaSugestoes(hashHead * head, char * str){		// imprime as palavras sugeridas ordenadas
-	heap * heapHead = (heap *) malloc(sizeof(heap));
-	inicializarHeap(heapHead, head->qnt);
-	node * percorre;
-	int i = 0;
-
-	for (int i = 0; i < head->tam; i++){		// Percorre toda a hash
-		percorre = head->vetor[i];
-		while(percorre != NULL){
-			if (levenshtein_pp(percorre->word, str) == 1){	// Seleciona os valores que devem ser sugeridos
-				insertHeap(heapHead, percorre->word);		// Insere os valores na heap
-			}
-
-			percorre = percorre->prox;
-		}
-	}
-
-	return heapHead;
-}
-
-
-void heapSort(heap * h){
-	while(h->tamanhoAtual != 0){
-		pop(h);
-	}
-
-	free(h->vet);
 }
