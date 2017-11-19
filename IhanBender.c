@@ -1,7 +1,4 @@
 // Autor: Ihan Bender
-// Algoritmos adaptados: Distancia de levenshtein, incluindo MIN3(fonte: wikipedia); hash => python(fonte: vista em aula).
-	// A distancia de levenshtein nao se adaptava a todas as especificacoes do trabalho, tendo sido necessaria uma mudanca.
-	// A Funcao hash sofreu esperimentacoes e alteracoes, tendo chegado ao estado atual
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,8 +40,8 @@ void freeHash(hashHead * head);				// Libera toda memoria da hash
 void toLowerCase(char * str);					// Deixa uma string apenas com letras minusculas
 
 // Sugestoes
-int levenshtein_pp(char *s1, char *s2);			// Retorna 1 caso as strings sejam "semelhantes" (de acordo com as especificacoes), 0 caso sejam iguais e 2 ou mais caso sejam "muito diferentes"
-heap * buscaSugestoes(hashHead * head, char * str);	// Busca as palavras ordenadas e armazena em uma heap
+void buscaSugestoes(hashHead * head, heap * heapHead, char * str);	// Busca as palavras ordenadas e armazena em uma heap
+int compareString(char *s1, char *s2);
 
 // Heap
 void inicializarHeap(heap * h, int tamanhoMax);
@@ -63,7 +60,7 @@ int main(){
 	hashHead * head;			// Cabecario da hash
 	head = createHash(head);	// Cria a tabela hash (50 posicoes inicialmente)
 	char str[101], analizedString[101];	// Strings utilizada para leitura das palavras
-	heap * heapHead;
+	heap * heapHead = (heap *) malloc(sizeof(heap));
 
 	analizedString[0] = '\0';
 
@@ -112,15 +109,16 @@ int main(){
 				if (search(head, analizedString)){	// Caso exista, ok
 					printf("ok %s\n",analizedString);
 				}
-				/*else{
-					heapHead = buscaSugestoes(head, analizedString);	// Busca sugestoes
-					if (heapHead->vet[1] == NULL){		// Caso nao haja
+				else{
+					buscaSugestoes(head, heapHead, analizedString);	// Busca sugestoes
+					
+					if (heapHead->tamanhoAtual == 0){		// Caso nao haja
 						printf("not found\n");	
 					}
-					else{							// Caso haja						
+					else{							// Caso haja
 						heapSort(heapHead);
 					}
-				}*/
+				}
 			}
 		}
 	}
@@ -167,6 +165,8 @@ bool insert(hashHead * head, char * str){		// Insere uma string da tabela
 	
 	node * percorre;
 	node * newNode;
+	char * newStr = (char *) malloc(sizeof(char) * strlen(str) + 1);
+	strcpy(newStr, str);
 
 	if(head->qnt+1 >= head->fCarga * head->tam){
 		head = reHash(head);
@@ -177,8 +177,7 @@ bool insert(hashHead * head, char * str){		// Insere uma string da tabela
 	if(head->vetor[h] == NULL){
 
 		head->vetor[h] = (node *) malloc(sizeof(node));
-		head->vetor[h]->word = (char *) malloc(sizeof(char) * strlen(str) + 1);	// Aloca espaco suficiente para a string
-		strcpy(head->vetor[h]->word, str);		// Copia a string para o nodo
+		head->vetor[h]->word = newStr;		// Copia a string para o nodo
 		head->vetor[h]->prox = NULL;			// Aponta prox para NULL
 
 	}
@@ -190,12 +189,13 @@ bool insert(hashHead * head, char * str){		// Insere uma string da tabela
 
 			percorre = percorre->prox;
 		}
-		if(strcmp(percorre->word, str) == 0)
+		if(strcmp(percorre->word, str) == 0){
+			free(newStr);
 			return false;
+		}
 
 		newNode = (node *) malloc(sizeof(node));
-		newNode->word = (char *) malloc(sizeof(char) * strlen(str) + 1);	// Aloca espaco suficiente para a string
-		strcpy(newNode->word, str);	// Copia a string para o nodo
+		newNode->word = newStr;			// Copia a string para o nodo
 		newNode->prox = NULL;			// Aponta prox para NULL
 		percorre->prox = newNode;		// Coloca newNode para o fim da lista encadeada
 
@@ -214,13 +214,16 @@ hashHead * reHash(hashHead * head){				// Dobra o tamanho do vetor e rearmazena 
 	if(!(newVetor = (node **) malloc(sizeof(node *) * head->tam * 2))){		// Tenta criar um vetor de ponteiros com o dobro do tamanho atual
 		return NULL;
 	}
+	for (int i = 0; i < head->tam * 2; ++i)
+	{
+		newVetor[i] = NULL;
+	}
 
 	// Atualiza o valor qnt da hash (durante o rehash, todos os dados serao reinseridos)
 	head->qnt = 0;
 	oldVetor = head->vetor;		// Guarda o vetor antigo em um ponteiro
 	head->vetor = newVetor;		// Hash recebe novo vetor (vazio)
 	head->tam = head->tam * 2;	// Dobra a variavel que controla o tamanho do vetor
-
 
 	while(i < head->tam/2){
 		percorreNode = oldVetor[i];
@@ -235,7 +238,6 @@ hashHead * reHash(hashHead * head){				// Dobra o tamanho do vetor e rearmazena 
 	}
 
 	free(oldVetor);
-	
 	return head;
 }
 
@@ -261,10 +263,12 @@ bool search(hashHead * head, char * str){		// Procura uma string na tabela que s
 	return false;	// Caso o loop termine e nao seja possivel encontrar o valor, retorna-se falso indicando que a string nao esta na ED
 }
 
+// Reajustar
 bool delete(hashHead * head, char * str){		// Deleta uma string da tabela
 
 	int h = hash(str) % head->tam;
 	node * percorre, * dead;
+	char * deadc;
 
 	if(head->vetor[h] == NULL)	// Caso a posicao em que a string devesse estar seja nula
 		return false;
@@ -273,7 +277,8 @@ bool delete(hashHead * head, char * str){		// Deleta uma string da tabela
 
 	if(strcmp(head->vetor[h]->word, str) == 0){	// Caso encontre na primeira posicao
 		head->vetor[h] = percorre->prox;
-		free(percorre->word);
+		deadc = percorre->word;
+		free(deadc);
 		free(percorre);
 		head->qnt--;
 		return true;
@@ -283,7 +288,8 @@ bool delete(hashHead * head, char * str){		// Deleta uma string da tabela
 		if (strcmp(percorre->prox->word, str) == 0){
 			dead = percorre->prox;
 			percorre->prox = dead->prox;
-			free(dead->word);
+			deadc = dead->word;
+			free(deadc);
 			free(dead);
 			head->qnt--;
 			return true;
@@ -353,7 +359,7 @@ void minHeapify(heap * h, int i){
   	temp = h->vet[i];
 	h->vet[i] = h->vet[menor];
 	h->vet[menor] = temp;
-  
+  	minHeapify(h, menor);
   }
 }
 
@@ -361,20 +367,20 @@ void pop(heap * h){
 
 	int pos = 1;
 	char * str;
+	char * dead = h->vet[1];
 
 	// Imprime o menor valor (raiz) e substitui pelo ultimo valor
-	if (h->vet[1] != NULL){
+	if (h->tamanhoAtual != 0){
 		printf("%s\n", h->vet[1]);
-
 		h->vet[1] = h->vet[h->tamanhoAtual];
-		
-		free(h->vet[h->tamanhoAtual]);
 		h->vet[h->tamanhoAtual] = NULL;
 		h->tamanhoAtual--;
+		free(dead);
 	}
 		
 		minHeapify(h, 1);
 }
+
 
 void insertHeap(heap * h, char * chave){
   int i;
@@ -399,24 +405,23 @@ void insertHeap(heap * h, char * chave){
   return;
 }
 
-heap * buscaSugestoes(hashHead * head, char * str){		// imprime as palavras sugeridas ordenadas
-	heap * heapHead = (heap *) malloc(sizeof(heap));
+void buscaSugestoes(hashHead * head, heap * heapHead, char * str){		// imprime as palavras sugeridas ordenadas
+	
 	inicializarHeap(heapHead, head->qnt);
+	printf("%d\n", head->qnt);
 	node * percorre;
 	int i;
 
 	for (i = 0; i < head->tam; i++){		// Percorre toda a hash
 		percorre = head->vetor[i];
 		while(percorre != NULL){
-			if (levenshtein_pp(percorre->word, str) == 1){	// Seleciona os valores que devem ser sugeridos
+			if (compareString(percorre->word, str) == 1){	// Seleciona os valores que devem ser sugeridos
 				insertHeap(heapHead, percorre->word);		// Insere os valores na heap
 			}
 
 			percorre = percorre->prox;
 		}
 	}
-
-	return heapHead;
 }
 
 
@@ -426,7 +431,6 @@ void heapSort(heap * h){
 	}
 
 	free(h->vet);
-	free(h);
 }
 
 // ----------------------------------------------- Manutençao de Strings ----------------------------------------------------
@@ -443,36 +447,45 @@ void toLowerCase(char * str){					// Deixa uma string apenas com letras minuscul
 	return;
 }	
 
-// Otimizar para sair antes
-int levenshtein_pp(char *s1, char *s2) {
-    unsigned int s1len, s2len, x, y, lastdiag, olddiag;
-    s1len = strlen(s1);
-    s2len = strlen(s2);
-    unsigned int column[s1len+1];
-    short int flag = 0;
 
-    if(s1len - s2len >= 2 || s2len - s1len >= 2){
-        return 3;
+int compareString(char *s1, char *s2){
+	
+	int i, j, flag = 0;
+	unsigned int s1len = strlen(s1);
+	unsigned int s2len = strlen(s2);
+	int diff = s1len - s2len;
+
+	if(diff >= 2 || diff <= -2){
+        return 2;
     }
 
-    for (y = 1; y <= s1len; y++)
-        column[y] = y;
-    for (x = 1; x <= s2len; x++) {
-        column[0] = x;
-        for (y = 1, lastdiag = x-1; y <= s1len; y++) {
-            olddiag = column[y];
-            if( s1[y-1] == s2[x] && s1[y] == s2[x-1] && flag == 1){
-            	column[y] = MIN3(column[y] + 1, column[y-1] + 1, lastdiag + (s1[y-1] == s2[x-1] ? 0 : 1));	
-            }
-            else{
-            	column[y] = MIN3(column[y] + 1, column[y-1] + 1, lastdiag + (s1[y-1] == s2[x-1] ? 0 : s1[y-1] == s2[x] && s1[y] == s2[x-1] ? 0 : 1));
-            	if (s1[y-1] == s2[x] && s1[y] == s2[x-1]){
-            		flag = 1;
-            	}
-            }
-     
-            lastdiag = olddiag;
-        }
-    }
-    return(column[s1len]);
+    if (diff < 0) diff - s2len;
+    else diff = s1len;
+
+    // Primeiro valor de iguais
+    
+    for (int i = 0, j = 0; i < diff || j < diff; i++, j++){
+    	if (s1[i] != s2[j]){
+    		if (s1[i+1] == s2[j] && s1[i] == s2[j+1]){	// Caso da permutacao
+    			i++;
+    			j++;
+    		}
+    		else{	// Caso de uma var a mais ou menos
+    			if (s1[i+1] == s2[j]){
+    				i++;
+    			}
+    			if (s1[i] == s2[j+1]){
+    				j++;
+    			}
+    		}
+
+    		flag++;
+
+			if (flag > 1){
+				return 2;
+  			}
+   		}
+   	}
+
+   	return flag;
 }

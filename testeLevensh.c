@@ -39,7 +39,7 @@ int levenshtein_pp(char *s1, char *s2) {
 
 int main(){
 
-	printf("%d\n", levenshtein_pp("burdening", "dramatise"));
+	printf("%d\n", levenshtein_pp("abcydefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn", "abzcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn"));
 	return 0;
 }
 

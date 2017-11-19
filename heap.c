@@ -13,9 +13,7 @@ void inicializarHeap(heap * h, int tamanhoMax){
 		exit(1);
 	}
  	h->tamanhoAtual = 0;
-	
 }
-
 
 int pai(int i){
   return i/2;
@@ -53,16 +51,15 @@ void pop(heap * h){
 
 	int pos = 1;
 	char * str;
+	char * dead = h->vet[1];
 
 	// Imprime o menor valor (raiz) e substitui pelo ultimo valor
-	if (h->vet[1] != NULL){
+	if (h->tamanhoAtual != 0){
 		printf("%s\n", h->vet[1]);
-
 		h->vet[1] = h->vet[h->tamanhoAtual];
-		
-		free(h->vet[h->tamanhoAtual]);
 		h->vet[h->tamanhoAtual] = NULL;
 		h->tamanhoAtual--;
+		free(dead);
 	}
 		
 		minHeapify(h, 1);
@@ -109,13 +106,12 @@ int main(){
 
 	while(fgets(str, 100, stdin)){
 		str[strlen(str) - 1] = '\0';
-
 		insertHeap(h, str);
 	}
 
-	/*for(int i = 1; i <= h->tamanhoAtual; i++){
+	for(int i = 1; i <= h->tamanhoAtual; i++){
 		printf("%s\n",h->vet[i]);
-	}*/
+	}
 
 	/*insertHeap(h, "aabcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
 	insertHeap(h, "babcdefghijklmonpqrstuvwxyzabcdefghijkrtuvwxyzdefghijklmonpqrstuvwxyzabcdefghijklmn");
@@ -127,6 +123,7 @@ int main(){
 	*/
 
 
+	printf("\n");
 	heapSort(h);
 	free(h);
 
