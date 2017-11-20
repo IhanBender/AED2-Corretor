@@ -25,7 +25,7 @@ typedef struct hashHead{	// Cabecario da hash
 	node ** vetor;		// Vetor de ponteiros para nodos
 } hashHead;
 
-/* --------------------------------------- Header das Funções -------------------------------------------------- */
+/* --------------------------------------- Funções -------------------------------------------------- */
 
 //Operações hash
 unsigned int hash(char * str);				// Calcula um indice para a tabela hash 
@@ -52,6 +52,8 @@ void insertHeap(heap * h, char * chave);
 void pop(heap * h);
 void heapSort(heap * h);
 void minHeapify(heap * h, int i);
+void freeHeap(heap * h, int n, int max);
+
 
 /* ---------------------------------------- MAIN ---------------------------------------------------------- */
 
@@ -67,8 +69,8 @@ int main(){
 
 	while(fgets(str, 101, stdin)){
 
-		if (str[0] == '*')
-		{
+		if (str[0] == '*'){
+
 			free(heapHead);
 			freeHash(head);		// Libera memoria e encerra a execucao quando o valor lido for *
 			return 0;
@@ -115,11 +117,10 @@ int main(){
 					buscaSugestoes(head, heapHead, analizedString);	// Busca sugestoes
 					
 					if (heapHead->tamanhoAtual == 0){		// Caso nao haja
-						printf("not found\n");	
+						printf("not found\n");
 					}
-					else{							// Caso haja
-						heapSort(heapHead);
-					}
+					heapSort(heapHead);
+						
 				}
 			}
 		}
@@ -164,7 +165,7 @@ hashHead * createHash(hashHead * head){			// Cria um cabecario para uma tabela h
 
 bool insert(hashHead * head, char * str){		// Insere uma string da tabela
 
-	
+	int count = 0;
 	node * percorre;
 	node * newNode;
 	char * newStr = (char *) malloc(sizeof(char) * strlen(str) + 1);
@@ -186,10 +187,13 @@ bool insert(hashHead * head, char * str){		// Insere uma string da tabela
 	else{
 		percorre = head->vetor[h];
 		while(percorre->prox != NULL){			// Verifica se a palavra ja existe
-			if(strcmp(percorre->word, str) == 0)
+			if(strcmp(percorre->word, str) == 0){
+				free(newStr);
 				return false;
+			}
 
 			percorre = percorre->prox;
+			count++;
 		}
 		if(strcmp(percorre->word, str) == 0){
 			free(newStr);
@@ -326,9 +330,11 @@ void freeHash(hashHead * head){					// Libera toda memoria da hash
 // ------------------------------------------------ Heap -------------------------------------------------------------
 
 void inicializarHeap(heap * h, int tamanhoMax){
-	h->vet = (char**) realloc(h->vet, sizeof(char *)*(tamanhoMax+1));
+	if(!(h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1))))
+		exit(1);
+
  	h->tamanhoAtual = 0;
-	for (int i = 1; i <= h->tamanhoAtual; ++i){
+	for (int i = 0; i <= tamanhoMax; i++){
   		h->vet[i] = NULL;
   	}
 }
@@ -367,11 +373,10 @@ void minHeapify(heap * h, int i){
 
 void pop(heap * h){
 
-	int pos = 1;
-	char * str;
 	char * dead;
 
 	// Imprime o menor valor (raiz) e substitui pelo ultimo valor
+
 	if (h->tamanhoAtual != 0){
 		printf("%s\n", h->vet[1]);
 
@@ -393,7 +398,7 @@ void insertHeap(heap * h, char * chave){
 
   (h->tamanhoAtual)++;
   i = h->tamanhoAtual;
-  str = malloc(sizeof(char) * strlen(chave));
+  str = malloc(sizeof(char) * (strlen(chave) +1));
   strcpy(str, chave);
   h->vet[i] = str;
 
@@ -413,15 +418,15 @@ void heapSort(heap * h){
 	while(h->tamanhoAtual != 0){
 		pop(h);
 	}
-	
-	//free(h->vet);
+
+	free(h->vet);
 	h->vet = NULL;
 }
+
 
 void buscaSugestoes(hashHead * head, heap * heapHead, char * str){		// imprime as palavras sugeridas ordenadas
 	
 	inicializarHeap(heapHead, head->qnt);
-	printf("%d\n", head->qnt);
 	node * percorre;
 	int i;
 
@@ -436,7 +441,6 @@ void buscaSugestoes(hashHead * head, heap * heapHead, char * str){		// imprime a
 		}
 	}
 }
-
 
 
 // ----------------------------------------------- Manutençao de Strings ----------------------------------------------------
