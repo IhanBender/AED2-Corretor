@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c))) // Usado para calculo da distancia de levenshtein (descobre o menor dos valores)
+
 
 /* ------------------------------------------------ Structs usadas ----------------------------------------------- */
 
@@ -37,7 +37,7 @@ bool search(hashHead * head, char * str);	// Procura uma string na tabela que se
 void freeHash(hashHead * head);				// Libera toda memoria da hash
 
 // Manipulaçao de strings
-void toLowerCase(char * str);					// Deixa uma string apenas com letras minusculas
+void toLowerCase(char * str);				// Deixa uma string apenas com letras minusculas
 
 // Sugestoes
 void buscaSugestoes(hashHead * head, heap * heapHead, char * str);	// Busca as palavras ordenadas e armazena em uma heap
@@ -57,8 +57,8 @@ void minHeapify(heap * h, int i);
 
 int main(){
 	
-	hashHead * head;			// Cabecario da hash
-	head = createHash(head);	// Cria a tabela hash (50 posicoes inicialmente)
+	hashHead * head;					// Cabecario da hash
+	head = createHash(head);			// Cria a tabela hash (50 posicoes inicialmente)
 	char str[101], analizedString[101];	// Strings utilizada para leitura das palavras
 	heap * heapHead = (heap *) malloc(sizeof(heap));
 
@@ -69,6 +69,7 @@ int main(){
 
 		if (str[0] == '*')
 		{
+			free(heapHead);
 			freeHash(head);		// Libera memoria e encerra a execucao quando o valor lido for *
 			return 0;
 		}
@@ -110,6 +111,7 @@ int main(){
 					printf("ok %s\n",analizedString);
 				}
 				else{
+
 					buscaSugestoes(head, heapHead, analizedString);	// Busca sugestoes
 					
 					if (heapHead->tamanhoAtual == 0){		// Caso nao haja
@@ -324,7 +326,7 @@ void freeHash(hashHead * head){					// Libera toda memoria da hash
 // ------------------------------------------------ Heap -------------------------------------------------------------
 
 void inicializarHeap(heap * h, int tamanhoMax){
-	h->vet = (char**) malloc(sizeof(char *)*(tamanhoMax+1));
+	h->vet = (char**) realloc(h->vet, sizeof(char *)*(tamanhoMax+1));
  	h->tamanhoAtual = 0;
 	for (int i = 1; i <= h->tamanhoAtual; ++i){
   		h->vet[i] = NULL;
@@ -367,11 +369,13 @@ void pop(heap * h){
 
 	int pos = 1;
 	char * str;
-	char * dead = h->vet[1];
+	char * dead;
 
 	// Imprime o menor valor (raiz) e substitui pelo ultimo valor
 	if (h->tamanhoAtual != 0){
 		printf("%s\n", h->vet[1]);
+
+		dead = h->vet[1];
 		h->vet[1] = h->vet[h->tamanhoAtual];
 		h->vet[h->tamanhoAtual] = NULL;
 		h->tamanhoAtual--;
@@ -405,6 +409,15 @@ void insertHeap(heap * h, char * chave){
   return;
 }
 
+void heapSort(heap * h){
+	while(h->tamanhoAtual != 0){
+		pop(h);
+	}
+	
+	//free(h->vet);
+	h->vet = NULL;
+}
+
 void buscaSugestoes(hashHead * head, heap * heapHead, char * str){		// imprime as palavras sugeridas ordenadas
 	
 	inicializarHeap(heapHead, head->qnt);
@@ -425,13 +438,6 @@ void buscaSugestoes(hashHead * head, heap * heapHead, char * str){		// imprime a
 }
 
 
-void heapSort(heap * h){
-	while(h->tamanhoAtual != 0){
-		pop(h);
-	}
-
-	free(h->vet);
-}
 
 // ----------------------------------------------- Manutençao de Strings ----------------------------------------------------
 
@@ -459,33 +465,49 @@ int compareString(char *s1, char *s2){
         return 2;
     }
 
-    if (diff < 0) diff - s2len;
-    else diff = s1len;
+    if (diff == 0){ // Sem preocupacoes sobre tamanhos diferentes
+        for (i = 0; i < s1len; i++){
+            if (s1[i] != s2[i]){
+                if (s1[i+1] == s2[i] && s1[i] == s2[i+1]){
+                    i++;
+                }
+                flag++;
+            }
 
-    // Primeiro valor de iguais
-    
-    for (int i = 0, j = 0; i < diff || j < diff; i++, j++){
-    	if (s1[i] != s2[j]){
-    		if (s1[i+1] == s2[j] && s1[i] == s2[j+1]){	// Caso da permutacao
-    			i++;
-    			j++;
-    		}
-    		else{	// Caso de uma var a mais ou menos
-    			if (s1[i+1] == s2[j]){
-    				i++;
-    			}
-    			if (s1[i] == s2[j+1]){
-    				j++;
-    			}
-    		}
+            if (flag > 1){
+                return 2;
+            }
+        }
+    }
+    else{   // Sabemos que so podemos aceitar sugestoes justificadas pelo tamanho
+        if (diff < 0) diff = s2len; // Define o tamanho da maior string
+        else diff = s1len;
 
-    		flag++;
+        for (i = 0, j = 0; i < diff; j++, i++){
+            if(s1[i] != s2[j]){
+                if (diff == s2len){ // Caso a segunda seja maior
+                    if (s1[i] == s2[j+1]){
+                        j++;
+                    }
+                    else{
+                        return 2;
+                    }
+                }
+                else{
+                    if (s2[j] == s1[i+1]){
+                        i++;
+                    }
+                    else{
+                        return 2;
+                    }
+                }
 
-			if (flag > 1){
-				return 2;
-  			}
-   		}
-   	}
+                flag++;
+            }
+        }
+
+    }
+
 
    	return flag;
 }
