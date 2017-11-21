@@ -1,4 +1,4 @@
-// Autor: Ihan Bender
+// Autor: Ihan Belmonte Bender
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +58,7 @@ void freeHeap(heap * h, int n, int max);
 /* ---------------------------------------- MAIN ---------------------------------------------------------- */
 
 int main(){
-	
+
 	hashHead * head;					// Cabecario da hash
 	head = createHash(head);			// Cria a tabela hash (50 posicoes inicialmente)
 	char str[101], analizedString[101];	// Strings utilizada para leitura das palavras
@@ -119,6 +119,7 @@ int main(){
 					if (heapHead->tamanhoAtual == 0){		// Caso nao haja
 						printf("not found\n");
 					}
+
 					heapSort(heapHead);
 						
 				}
@@ -153,7 +154,7 @@ hashHead * createHash(hashHead * head){			// Cria um cabecario para uma tabela h
 	if(!(head = (hashHead *) malloc(sizeof(hashHead))))
 		return NULL;
 	
-	head->fCarga = 2;	// Valor decidido como fator de carga máximo
+	head->fCarga = 8;	// Valor decidido como fator de carga máximo (serão permitidos uma qnt de ate 8 x tam)
 	head->qnt = 0;		// Valor inicial de strings
 	head->tam = 50;		// Numero de posições do vetor
 	 		
@@ -269,7 +270,7 @@ bool search(hashHead * head, char * str){		// Procura uma string na tabela que s
 	return false;	// Caso o loop termine e nao seja possivel encontrar o valor, retorna-se falso indicando que a string nao esta na ED
 }
 
-// Reajustar
+
 bool delete(hashHead * head, char * str){		// Deleta uma string da tabela
 
 	int h = hash(str) % head->tam;
